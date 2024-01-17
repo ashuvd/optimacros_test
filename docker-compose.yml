@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  db:
+    image: mongo:6-jammy
+    ports:
+      - '27017:27017'
+    volumes:
+      - database_optimacros:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+  db_test:
+    image: mongo:6-jammy
+    ports:
+      - '27018:27017'
+    volumes:
+      - database_test_optimacros:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+  server:
+    build:
+      context: ./
+      dockerfile: server/Dockerfile
+    restart: on-failure
+    ports:
+      - '4200:4200'
+    expose:
+      - '4200'
+    depends_on:
+      - db
+    environment:
+      - PORT=${PORT}
+      - MONGODB_URL=${MONGODB_URL}
+    volumes:
+      - modules_server:/usr/src/app/node_modules
+      - ./server/package.json:/usr/src/app/package.json:ro,cached
+      - ./server/package-lock.json:/usr/src/app/package-lock.json:cached
+      - ./server/tsconfig.json:/usr/src/app/tsconfig.json:ro,cached
+      - ./server/nest-cli.json:/usr/src/app/nest-cli.json:ro,cached
+      - ./server/src:/usr/src/app/src:ro,cached
+    command:
+      [
+        'node_modules/.bin/ts-node-dev',
+        '--transpile-only',
+        '--ignore-watch',
+        'node_modules',
+        'src/main',
+      ]
+volumes:
+  database_optimacros:
+  database_test_optimacros:
+  modules_server:
